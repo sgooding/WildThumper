@@ -144,7 +144,20 @@ void loop()
 
   {//----------------------------------------------------------- GOOD BATTERY speed controller opperates normally ----------------------
 
-    switch(Cmode)
+      int mode = 0;
+      int ToggleAuto=pulseIn(toggleAuto,HIGH,25000);
+      if( ToggleAuto > 1200 )
+      {
+          Serial.println("AUTO");
+          mode = 1;
+      }
+      else
+      {
+          Serial.println("RC");
+          mode = 0;
+      }
+
+    switch(mode)
     {
     case 0:                                                   // RC mode via D0 and D1
       RCmode();
@@ -225,7 +238,7 @@ void RCmode()
 
   Speed=pulseIn(RCleft,HIGH,25000);                           // read throttle/left stick
   Steer=pulseIn(RCright,HIGH,25000);                          // read steering/right stick
-  ToggleAuto=pulseIn(toggleAuto,HIGH,2500);
+  //ToggleAuto=pulseIn(toggleAuto,HIGH,2500);
   //Serial.print("Speed:");
   //Serial.print(Speed);
   //Serial.print(" -- Steer:");
@@ -236,17 +249,8 @@ void RCmode()
 
   if (abs(Speed-1500)<RCdeadband) Speed=1500;                 // if Speed input is within deadband set to 1500 (1500uS=center position for most servos)
   if (abs(Steer-1500)<RCdeadband) Steer=1500;                 // if Steer input is within deadband set to 1500 (1500uS=center position for most servos)
-  if (abs(ToggleAuto-1500)<RCdeadband) ToggleAuto=1500;
+  //if (abs(ToggleAuto-1500)<RCdeadband) ToggleAuto=1500;
 
-  if (ToggleAuto > 1500 && !InAuto)
-  {
-    InAuto = true;
-    return;
-  }
-  else
-  {
-    InAuto = false;
-  }
 
   if (Mix==1)                                                 // Mixes speed and steering signals
   {
@@ -296,7 +300,7 @@ void SCmode()
                                                               // SV = next 7 integers will be position information for servos 0-6
  
                                                               // HB = "H" bridge data - next 4 bytes will be:
-                                                              //      left  motor mode 0-2
+                                                              //      left  motor mode 0-2, rev, br, forwar
                                                               //      left  motor PWM  0-255
                                                               //      right motor mode 0-2
                                                               //      right motor PWM  0-255
@@ -317,8 +321,10 @@ void SCmode()
         for (int i=1;i<6;i++)                                 // index analog inputs 1-5
         {
           data=analogRead(i);                                 // read 10bit analog input 
-          Serial.write(highByte(data));                       // transmit high byte
-          Serial.write(lowByte(data));                        // transmit low byte
+          //Serial.write(highByte(data));                       // transmit high byte
+          //Serial.write(lowByte(data));                        // transmit low byte
+          //Serial.write(data,DEC);
+          Serial.println(data);
         }
         break;
               
@@ -338,10 +344,15 @@ void SCmode()
          break;
        
        case 18498:                                            // HB - mode and PWM data for left and right motors
+         Serial.println("HB Mode");
          Serialread();
+         Serial.print("LeftMode: ");
          Leftmode=data;
+         Serial.println(data,DEC);
          Serialread();
+         Serial.print("LeftPWM:");
          LeftPWM=data;
+         Serial.println(data,DEC);
          Serialread();
          Rightmode=data;
          Serialread();
