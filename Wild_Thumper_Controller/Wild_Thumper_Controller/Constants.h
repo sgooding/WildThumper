@@ -12,7 +12,7 @@
 #define Rightcenter       1500     // when RC inputs are centered then input should be 1.5mS
 #define RCdeadband          35     // inputs do not have to be perfectly centered to stop motors
 #define scale               12     // scale factor for RC signal to PWM
-
+#define Pandeadband         60
 
 
 //=================================== BATTERY CHARGER SETTINGS ======================================================================

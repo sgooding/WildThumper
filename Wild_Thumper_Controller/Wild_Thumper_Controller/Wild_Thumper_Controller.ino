@@ -18,6 +18,7 @@ int Leftspeed=0;
 int Rightspeed=0;
 int Speed;
 int Steer;
+int ToggleAuto;
 byte Charged=1;                                               // 0=Flat battery  1=Charged battery
 int Leftmode=1;                                               // 0=reverse, 1=brake, 2=forward
 int Rightmode=1;                                              // 0=reverse, 1=brake, 2=forward
@@ -28,6 +29,9 @@ int RightPWM;                                                 // PWM value for r
 int data;
 int servo[7];
 int temp;
+boolean InAuto = false;
+int PanValue;
+int PanAngle = 90;
 
 //-------------------------------------------------------------- define servos ------------------------------------------------------
 
@@ -35,10 +39,10 @@ int temp;
 //Servo Servo0;                                                 // define servos
 //Servo Servo1;                                                 // define servos
 //Servo Servo2;                                                 // define servos
-Servo Servo3;                                                 // define servos
-Servo Servo4;                                                 // define servos
-Servo Servo5;                                                 // define servos
-Servo Servo6;                                                 // define servos
+//Servo Servo3;                                                 // define servos
+//Servo Servo4;                                                 // define servos
+Servo PanServo;                                                 // define servos
+//Servo Servo6;                                                 // define servos
 
 void setup()
 {
@@ -50,20 +54,20 @@ void setup()
   //Servo0.attach(S0);                                          // attach servo to I/O pin
   //Servo1.attach(S1);                                          // attach servo to I/O pin
   //Servo2.attach(S2);                                          // attach servo to I/O pin
-  Servo3.attach(S3);                                          // attach servo to I/O pin
-  Servo4.attach(S4);                                          // attach servo to I/O pin
-  Servo5.attach(S5);                                          // attach servo to I/O pin
-  Servo6.attach(S6);                                          // attach servo to I/O pin
+  //Servo3.attach(S3);                                          // attach servo to I/O pin
+  //Servo4.attach(S4);                                          // attach servo to I/O pin
+  PanServo.attach(panOut);                                          // attach servo to I/O pin
+  //Servo6.attach(S6);                                          // attach servo to I/O pin
 
   //------------------------------------------------------------ Set servos to default position ---------------------------------------
 
   //Servo0.writeMicroseconds(DServo0);                          // set servo to default position
   //Servo1.writeMicroseconds(DServo1);                          // set servo to default position
   //Servo2.writeMicroseconds(DServo2);                          // set servo to default position
-  Servo3.writeMicroseconds(DServo3);                          // set servo to default position
-  Servo4.writeMicroseconds(DServo4);                          // set servo to default position
-  Servo5.writeMicroseconds(DServo5);                          // set servo to default position
-  Servo6.writeMicroseconds(DServo6);                          // set servo to default position
+  //Servo3.writeMicroseconds(DServo3);                          // set servo to default position
+  //Servo4.writeMicroseconds(DServo4);                          // set servo to default position
+  PanServo.writeMicroseconds(DServo5);                          // set servo to default position
+  //Servo6.writeMicroseconds(DServo6);                          // set servo to default position
 
   //------------------------------------------------------------ Initialize I/O pins --------------------------------------------------
 
@@ -144,20 +148,7 @@ void loop()
 
   {//----------------------------------------------------------- GOOD BATTERY speed controller opperates normally ----------------------
 
-      int mode = 0;
-      int ToggleAuto=pulseIn(toggleAuto,HIGH,25000);
-      if( ToggleAuto > 1200 )
-      {
-          Serial.println("AUTO");
-          mode = 1;
-      }
-      else
-      {
-          Serial.println("RC");
-          mode = 0;
-      }
-
-    switch(mode)
+    switch(Cmode)
     {
     case 0:                                                   // RC mode via D0 and D1
       RCmode();
@@ -238,7 +229,10 @@ void RCmode()
 
   Speed=pulseIn(RCleft,HIGH,25000);                           // read throttle/left stick
   Steer=pulseIn(RCright,HIGH,25000);                          // read steering/right stick
-  //ToggleAuto=pulseIn(toggleAuto,HIGH,2500);
+  ToggleAuto=pulseIn(toggleAuto,HIGH,25000);
+  PanValue=pulseIn(panIn,HIGH,25000);
+
+  
   //Serial.print("Speed:");
   //Serial.print(Speed);
   //Serial.print(" -- Steer:");
@@ -249,8 +243,31 @@ void RCmode()
 
   if (abs(Speed-1500)<RCdeadband) Speed=1500;                 // if Speed input is within deadband set to 1500 (1500uS=center position for most servos)
   if (abs(Steer-1500)<RCdeadband) Steer=1500;                 // if Steer input is within deadband set to 1500 (1500uS=center position for most servos)
-  //if (abs(ToggleAuto-1500)<RCdeadband) ToggleAuto=1500;
-
+  if (abs(ToggleAuto-1500)<RCdeadband) ToggleAuto=1500;
+  if (abs(PanValue-1500)<Pandeadband) PanValue=1500;
+  
+  if(PanValue > 1500)
+  {
+    PanAngle = PanAngle+5;
+  } else if( PanValue < 1500 )
+  {
+    PanAngle = PanAngle-5;
+  }
+  PanAngle = constrain(PanAngle,10,170);
+  
+  
+  PanServo.write(PanAngle);
+  if (ToggleAuto < 1500)
+  {
+    InAuto = true;
+    Serial.print("PanValue:");
+    Serial.println(PanValue);
+    return;
+  }
+  else
+  {
+    InAuto = false;
+  }
 
   if (Mix==1)                                                 // Mixes speed and steering signals
   {
@@ -300,7 +317,7 @@ void SCmode()
                                                               // SV = next 7 integers will be position information for servos 0-6
  
                                                               // HB = "H" bridge data - next 4 bytes will be:
-                                                              //      left  motor mode 0-2, rev, br, forwar
+                                                              //      left  motor mode 0-2
                                                               //      left  motor PWM  0-255
                                                               //      right motor mode 0-2
                                                               //      right motor PWM  0-255
@@ -321,10 +338,8 @@ void SCmode()
         for (int i=1;i<6;i++)                                 // index analog inputs 1-5
         {
           data=analogRead(i);                                 // read 10bit analog input 
-          //Serial.write(highByte(data));                       // transmit high byte
-          //Serial.write(lowByte(data));                        // transmit low byte
-          //Serial.write(data,DEC);
-          Serial.println(data);
+          Serial.write(highByte(data));                       // transmit high byte
+          Serial.write(lowByte(data));                        // transmit low byte
         }
         break;
               
@@ -337,22 +352,17 @@ void SCmode()
          //Servo0.writeMicroseconds(servo[0]*256+servo[1]);     // set servo position
          //Servo1.writeMicroseconds(servo[2]*256+servo[3]);     // set servo position
          //Servo2.writeMicroseconds(servo[4]*256+servo[5]);     // set servo position
-         Servo3.writeMicroseconds(servo[6]*256+servo[7]);     // set servo position
-         Servo4.writeMicroseconds(servo[8]*256+servo[9]);     // set servo position
-         Servo5.writeMicroseconds(servo[10]*256+servo[11]);   // set servo position
-         Servo6.writeMicroseconds(servo[12]*256+servo[13]);   // set servo position
+         //Servo3.writeMicroseconds(servo[6]*256+servo[7]);     // set servo position
+         //Servo4.writeMicroseconds(servo[8]*256+servo[9]);     // set servo position
+         //Servo5.writeMicroseconds(servo[10]*256+servo[11]);   // set servo position
+         //Servo6.writeMicroseconds(servo[12]*256+servo[13]);   // set servo position
          break;
        
        case 18498:                                            // HB - mode and PWM data for left and right motors
-         Serial.println("HB Mode");
          Serialread();
-         Serial.print("LeftMode: ");
          Leftmode=data;
-         Serial.println(data,DEC);
          Serialread();
-         Serial.print("LeftPWM:");
          LeftPWM=data;
-         Serial.println(data,DEC);
          Serialread();
          Rightmode=data;
          Serialread();

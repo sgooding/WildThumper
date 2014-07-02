@@ -10,13 +10,13 @@
 //#define S0                  0  // Servo output 00
 //#define S1                  1  // Servo output 01
 //#define S2                  7  // Servo output 02
-#define S3                  8  // Servo output 03
-#define S4                  9  // Servo output 04
-#define S5                 10  // Servo output 05
+//#define S3                  8  // Servo output 03
+#define panIn               8  // Servo output 04
+#define panOut             10  // Servo output 05
 #define S6                 12  // Servo output 06
 
 #define Battery             0  // Analog input 00
 #define RmotorC             6  // Analog input 06
 #define LmotorC             7  // Analog input 07
 #define Charger            13  // Low=ON High=OFF
-#define toggleAuto          7  // d7 1 left-left/right, 
+#define toggleAuto          9  // d9 1 left-left/right, 
