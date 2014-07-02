@@ -19,4 +19,5 @@
 #define RmotorC             6  // Analog input 06
 #define LmotorC             7  // Analog input 07
 #define Charger            13  // Low=ON High=OFF
-#define toggleAuto          9  // d9 1 left-left/right, 
+#define toggleAuto          9  // d9 1 left-left/right
+
