@@ -21,3 +21,4 @@
 #define Charger            13  // Low=ON High=OFF
 #define toggleAuto          9  // d9 1 left-left/right
 
+// END
